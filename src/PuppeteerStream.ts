@@ -69,6 +69,8 @@ export async function launch(
 		if (!found) opts.args.push(arg + value);
 	}
 
+    wss = new WebSocketServer({ port: opts.customPort || 55200 });
+
     if (opts.customPort) {
         const newExtensionPath = await duplicateExtensionWithCustomPort(opts.customPort);
 
