@@ -19,7 +19,8 @@
 	"files": [
 		"dist/",
 		"src/",
-		"tsconfig.json"
+		"tsconfig.json",
+        "extension/"
 	],
 	"author": "SamuelScheit",
 	"repository": {
