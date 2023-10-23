@@ -20,7 +20,8 @@
 		"dist/",
 		"src/",
         "extension/",
-		"tsconfig.json"
+		"tsconfig.json",
+        "package-lock.json"
 	],
 	"author": "SamuelScheit",
 	"repository": {
