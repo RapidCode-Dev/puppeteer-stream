@@ -1,5 +1,7 @@
 const recorders = {};
 
+const wsPort = "%WS_PORT%";
+
 async function START_RECORDING({
 	index,
 	video,
@@ -29,7 +31,9 @@ async function START_RECORDING({
 		})
 	);
 
-	const client = new WebSocket("ws://localhost:55200/?index=" + index, []);
+    let port = isNaN(Number(wsPort)) ? 55200 : Number(wsPort);
+
+	const client = new WebSocket(`ws://localhost:${port}/?index=${index}`, []);
 
 	await new Promise((resolve) => {
 		if (client.readyState === WebSocket.OPEN) resolve();

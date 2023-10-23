@@ -11,6 +11,8 @@ import { Transform } from "stream";
 import WebSocket, { WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
 
+import fs from 'fs-extra';
+
 const extensionPath = path.join(__dirname, "..", "extension");
 const extensionId = "jjndjgheafjngoipoacpjgeicjeomjli";
 let currentIndex = 0;
@@ -18,9 +20,27 @@ type StreamLaunchOptions = LaunchOptions &
 	BrowserLaunchArgumentOptions &
 	BrowserConnectOptions & {
 		allowIncognito?: boolean;
+        customPort?: number;
 	};
 
-export const wss = new WebSocketServer({ port: 55200 });
+export let wss: WebSocketServer | null = null;
+
+async function duplicateExtensionWithCustomPort(port: number){
+    try{
+        const newPath = path.join(__dirname, "..", `tmp/${new Date().getSeconds}`);
+        await fs.copy(extensionPath, newPath);
+        
+        //  Change the port in the options.js file:  
+        const optionsPath = path.join(newPath, "options.js");
+        const options = await fs.readFile(optionsPath, 'utf-8');
+        const newOptions = options.replace("%WS_PORT%", port.toString());
+        await fs.writeFile(optionsPath, newOptions);
+        return newPath;
+    }catch(e){
+        console.error('Failed to duplicate extension with custom port', e);
+        throw e;
+    }
+}
 
 export async function launch(
 	arg1: StreamLaunchOptions | { launch?: Function; [key: string]: any },
@@ -49,10 +69,18 @@ export async function launch(
 		if (!found) opts.args.push(arg + value);
 	}
 
-	addToArgs("--load-extension=", extensionPath);
-	addToArgs("--disable-extensions-except=", extensionPath);
-	addToArgs("--allowlisted-extension-id=", extensionId);
-	addToArgs("--autoplay-policy=no-user-gesture-required");
+    if (opts.customPort) {
+        const newExtensionPath = await duplicateExtensionWithCustomPort(opts.customPort);
+
+        addToArgs("--load-extension=", newExtensionPath);
+        addToArgs("--disable-extensions-except=", newExtensionPath);
+    }else{
+        addToArgs("--load-extension=", extensionPath);
+        addToArgs("--disable-extensions-except=", extensionPath);
+    }
+
+    addToArgs("--allowlisted-extension-id=", extensionId);
+    addToArgs("--autoplay-policy=no-user-gesture-required");
 
 	if (opts.defaultViewport?.width && opts.defaultViewport?.height)
 		opts.args.push(`--window-size=${opts.defaultViewport.width}x${opts.defaultViewport.height}`);
@@ -135,6 +163,7 @@ export interface getStreamOptions {
 		immediateResume?: boolean;
 		closeTimeout?: number;
 	};
+    customPort?: number;
 }
 
 async function getExtensionPage(browser: Browser) {
@@ -171,7 +200,8 @@ export async function getStream(page: Page, opts: getStreamOptions) {
 	});
 
 	function onConnection(ws: WebSocket, req: IncomingMessage) {
-		const url = new URL(`http://localhost:55200${req.url}`);
+        const port = opts.customPort || 55200;
+		const url = new URL(`http://localhost:${port}${req.url}`);
 		if (url.searchParams.get("index") != index.toString()) return;
 
 		function close() {
