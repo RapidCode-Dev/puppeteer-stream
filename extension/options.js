@@ -47,6 +47,12 @@ async function START_RECORDING({
 		});
 	});
 
+	// if (audio) {
+		const audioContext = new AudioContext();
+		const audioSource = audioContext.createMediaStreamSource(stream);
+		audioSource.connect(audioContext.destination);
+	// }
+
 	// somtimes needed to sync audio and video
 	if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
 
